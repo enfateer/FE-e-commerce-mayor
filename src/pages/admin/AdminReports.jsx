@@ -4,6 +4,17 @@ import { getAdminReports } from '../../api/admin';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { HiUsers, HiCube, HiShoppingBag, HiTrendingUp, HiChartBar, HiShieldCheck } from 'react-icons/hi';
 
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { Doughnut } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
+
 const AdminReports = () => {
   const [reports, setReports] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -71,27 +82,102 @@ const AdminReports = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 border border-surface-200 dark:border-surface-700">
           <h2 className="text-lg font-bold text-surface-900 dark:text-white mb-4">Order Breakdown</h2>
-          <div className="space-y-4">
-            {[
-              { label: 'Pending', value: reports?.pendingOrders || 0, color: 'bg-yellow-500' },
-              { label: 'In Progress', value: reports?.inProgressOrders || 0, color: 'bg-blue-500' },
-              { label: 'Completed', value: reports?.completedOrders || 0, color: 'bg-green-500' },
-              { label: 'Cancelled', value: reports?.cancelledOrders || 0, color: 'bg-red-500' },
-            ].map((item, i) => {
-              const total = reports?.totalOrders || 1;
-              const pct = Math.round((item.value / total) * 100) || 0;
-              return (
-                <div key={i}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-surface-600 dark:text-surface-300">{item.label}</span>
-                    <span className="font-medium text-surface-800 dark:text-white">{item.value} ({pct}%)</span>
-                  </div>
-                  <div className="w-full h-2 bg-surface-100 dark:bg-surface-700 rounded-full overflow-hidden">
-                    <div className={`h-full ${item.color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-              );
-            })}
+
+          <div className="flex flex-col lg:flex-row gap-6 items-center">
+            <div className="w-full lg:w-2/5">
+              <Doughnut
+                data={{
+                  labels: ['Pending', 'In Progress', 'Completed', 'Cancelled'],
+                  datasets: [
+                    {
+                      data: [
+                        reports?.pendingOrders || 0,
+                        reports?.inProgressOrders || 0,
+                        reports?.completedOrders || 0,
+                        reports?.cancelledOrders || 0,
+                      ],
+                      backgroundColor: ['#f59e0b', '#3b82f6', '#22c55e', '#ef4444'],
+                      borderWidth: 0,
+                    },
+                  ],
+                }}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  cutout: '62%',
+                  plugins: {
+                    legend: {
+                      display: false,
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: (ctx) => {
+                          const value = ctx.parsed || 0;
+                          const total =
+                            (reports?.pendingOrders || 0) +
+                            (reports?.inProgressOrders || 0) +
+                            (reports?.completedOrders || 0) +
+                            (reports?.cancelledOrders || 0);
+                          const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+                          return `${ctx.label}: ${value} (${pct}%)`;
+                        },
+                      },
+                    },
+                    datalabels: {
+                      color: '#111827',
+                      backgroundColor: '#ffffff',
+                      borderRadius: 8,
+                      padding: 6,
+                      font: {
+                        weight: 'bold',
+                      },
+                      formatter: (value, context) => {
+                        const label = context.chart.data.labels[context.dataIndex];
+                        const total =
+                          (reports?.pendingOrders || 0) +
+                          (reports?.inProgressOrders || 0) +
+                          (reports?.completedOrders || 0) +
+                          (reports?.cancelledOrders || 0);
+                        const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+                        return `${label}: ${value} (${pct}%)`;
+                      },
+                    },
+                  },
+                  animation: {
+                    duration: 600,
+                  },
+                }}
+                height={240}
+              />
+            </div>
+
+            <div className="w-full lg:w-3/5">
+              <div className="space-y-4">
+                {[
+                  { label: 'Pending', value: reports?.pendingOrders || 0, color: 'bg-yellow-500' },
+                  { label: 'In Progress', value: reports?.inProgressOrders || 0, color: 'bg-blue-500' },
+                  { label: 'Completed', value: reports?.completedOrders || 0, color: 'bg-green-500' },
+                  { label: 'Cancelled', value: reports?.cancelledOrders || 0, color: 'bg-red-500' },
+                ].map((item, i) => {
+                  const total = reports?.totalOrders || 1;
+                  const pct = Math.round((item.value / total) * 100) || 0;
+                  return (
+                    <div key={i}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-surface-600 dark:text-surface-300">{item.label}</span>
+                        <span className="font-medium text-surface-800 dark:text-white">{item.value} ({pct}%)</span>
+                      </div>
+                      <div className="w-full h-2 bg-surface-100 dark:bg-surface-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${item.color} rounded-full transition-all`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 
